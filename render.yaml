@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: smart-food-distribution
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build && cd backend && npm install
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: MONGO_URI
+        sync: false
+      - key: CLIENT_URL
+        value: "*"

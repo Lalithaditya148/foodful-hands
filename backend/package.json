@@ -1,0 +1,26 @@
+{
+  "name": "foodful-hands-backend",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "seed": "node utils/seedUsers.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "connect-mongo": "^5.1.0",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.7.0",
+    "express-session": "^1.18.2",
+    "helmet": "^8.3.0",
+    "mongoose": "^8.18.0",
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
