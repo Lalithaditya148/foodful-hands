@@ -126,11 +126,136 @@ const path = require("path");
 const fs = require("fs");
 const clientDistPath = path.resolve(__dirname, "../dist");
 const localDistPath = path.resolve(__dirname, "./dist");
+const outputPublicPath = path.resolve(__dirname, "../.output/public");
 const distDir = fs.existsSync(clientDistPath)
   ? clientDistPath
   : fs.existsSync(localDistPath)
     ? localDistPath
-    : null;
+    : fs.existsSync(outputPublicPath)
+      ? outputPublicPath
+      : null;
+
+// One-click seed endpoint for initial setup
+app.get("/api/seed", async (_req, res) => {
+  try {
+    const bcrypt = require("bcryptjs");
+    const User = require("./models/User");
+    const Donation = require("./models/Donation");
+    const ContactMessage = require("./models/ContactMessage");
+
+    const usersToSeed = [
+      {
+        name: "Platform Admin",
+        email: "admin@smartfoodhub.org",
+        phone: "+91 98765 43210",
+        city: "Vijayawada",
+        address: "Benz Circle, Vijayawada",
+        password: "admin123",
+        role: "admin",
+      },
+      {
+        name: "Ravi Kumar (Donor)",
+        email: "donor@demo.com",
+        phone: "+91 90000 11111",
+        city: "Vijayawada",
+        address: "Gandhi Nagar, Vijayawada",
+        password: "donor123",
+        role: "donor",
+      },
+      {
+        name: "Sunrise Orphanage",
+        managerName: "Sister Mary",
+        orgType: "orphanage",
+        email: "org@demo.com",
+        phone: "+91 90000 22222",
+        city: "Vijayawada",
+        address: "Patamata, Vijayawada",
+        password: "org123",
+        role: "organization",
+        orgStatus: "approved",
+      },
+      {
+        name: "Hope Elders Care Home",
+        managerName: "Lakshmi Prasad",
+        orgType: "old_age_home",
+        email: "hope@demo.com",
+        phone: "+91 90000 33333",
+        city: "Vijayawada",
+        address: "Bhavanipuram, Vijayawada",
+        password: "org123",
+        role: "organization",
+        orgStatus: "pending",
+      },
+    ];
+
+    const seededUsers = [];
+    for (const u of usersToSeed) {
+      let existing = await User.findOne({ email: u.email });
+      if (!existing) {
+        existing = await User.create({ ...u, password: await bcrypt.hash(u.password, 12) });
+      }
+      seededUsers.push(existing.email);
+    }
+
+    // Seed sample donations if none exist
+    const donationCount = await Donation.countDocuments();
+    if (donationCount === 0) {
+      const donor = await User.findOne({ email: "donor@demo.com" });
+      const org = await User.findOne({ email: "org@demo.com" });
+      const now = Date.now();
+      await Donation.insertMany([
+        {
+          donor: donor._id,
+          donorName: donor.name,
+          donorPhone: donor.phone,
+          eventType: "Marriage",
+          foodType: "Veg",
+          foodName: "Hyderabadi Veg Biryani & Salan",
+          quantity: 50,
+          originalQuantity: 50,
+          preparedAt: new Date(now - 3600000),
+          availableUntil: new Date(now + 14400000),
+          pickupAddress: "Subham Kalyana Mandapam, MG Road",
+          city: "Vijayawada",
+          mapUrl: "https://www.google.com/maps/search/?api=1&query=MG+Road+Vijayawada",
+          imageUrl:
+            "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80",
+          safetyConfirmed: true,
+          status: "available",
+        },
+        {
+          donor: donor._id,
+          organization: org._id,
+          donorName: donor.name,
+          donorPhone: donor.phone,
+          eventType: "Function",
+          foodType: "Veg",
+          foodName: "South Indian Thali (Rice, Sambar, Poriyal)",
+          quantity: 40,
+          originalQuantity: 60,
+          claimedQuantity: 40,
+          preparedAt: new Date(now - 3600000),
+          availableUntil: new Date(now + 10800000),
+          pickupAddress: "Sita Kalyana Vedika, Governorpet",
+          city: "Vijayawada",
+          mapUrl: "https://www.google.com/maps/search/?api=1&query=Governorpet+Vijayawada",
+          imageUrl:
+            "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&auto=format&fit=crop&q=80",
+          safetyConfirmed: true,
+          status: "claimed",
+        },
+      ]);
+    }
+
+    res.json({
+      success: true,
+      message: "Database seeded successfully!",
+      users: seededUsers,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 if (distDir) {
   app.use(express.static(distDir));
