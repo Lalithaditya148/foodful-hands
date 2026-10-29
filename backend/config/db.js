@@ -2,12 +2,13 @@ const mongoose = require("mongoose");
 
 async function connectDB() {
   if (!process.env.MONGO_URI) throw new Error("MONGO_URI is not configured");
+  console.log("Connecting mongoose to:", process.env.MONGO_URI.replace(/:([^:@]+)@/, ":****@"));
   await mongoose.connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 5000, // fail fast instead of hanging 30s
-    heartbeatFrequencyMS: 5000, // detect disconnects quickly
-    socketTimeoutMS: 10000, // timeout idle sockets after 10s
+    serverSelectionTimeoutMS: 10000,
+    heartbeatFrequencyMS: 5000,
+    socketTimeoutMS: 15000,
   });
-  console.log("MongoDB connected");
+  console.log("✅ MongoDB connected successfully to database:", mongoose.connection.name);
 }
 
 module.exports = connectDB;

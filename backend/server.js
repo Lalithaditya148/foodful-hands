@@ -1,4 +1,13 @@
 require("dotenv").config({ path: require("path").join(__dirname, ".env") });
+
+console.log("==========================================");
+console.log("Server starting...");
+console.log("PORT:", process.env.PORT || 5000);
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("MONGO_URI defined:", Boolean(process.env.MONGO_URI));
+console.log("SESSION_SECRET defined:", Boolean(process.env.SESSION_SECRET));
+console.log("==========================================");
+
 const express = require("express");
 const http = require("http");
 const helmet = require("helmet");
@@ -28,7 +37,6 @@ const authLimiter = rateLimit({
 
 function isAllowedOrigin(origin) {
   if (!origin) return true;
-  // Allow all origins if CLIENT_URL is * or not set
   const clientUrl = process.env.CLIENT_URL || "*";
   if (clientUrl === "*") return true;
   const allowedOrigins = clientUrl.split(",").map((o) => o.trim()).filter(Boolean);
@@ -58,12 +66,23 @@ app.use(express.json({ limit: "1mb" }));
 
 if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 
+const mongoUrl = process.env.MONGO_URI;
+if (!mongoUrl) {
+  console.error("FATAL: MONGO_URI environment variable is missing!");
+  process.exit(1);
+}
+
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || "fallback_secret_dont_use_in_prod",
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+    store: MongoStore.create({
+      mongoUrl,
+      mongoOptions: {
+        serverSelectionTimeoutMS: 10000,
+      },
+    }),
     cookie: {
       httpOnly: true,
       sameSite: "lax",
@@ -86,11 +105,9 @@ const io = new SocketIO(httpServer, {
 app.locals.io = io;
 
 io.on("connection", (socket) => {
-  // Clients join a room for donations they care about
   socket.on("watch:donation", (donationId) => {
     if (typeof donationId === "string") socket.join(`donation:${donationId}`);
   });
-  // Clients can join a room for all donations (used for the list view)
   socket.on("watch:donations", () => {
     socket.join("donations:all");
   });
@@ -122,15 +139,29 @@ if (distDir) {
     }
     res.sendFile(path.join(distDir, "index.html"));
   });
+} else {
+  // If no dist folder built yet, provide a friendly status page at root
+  app.get("/", (_req, res) => {
+    res.json({
+      service: "Smart Food Distribution API",
+      status: "online",
+      health: "/api/health",
+      documentation: "Deploy frontend separately or run full build",
+    });
+  });
 }
 
 app.use((_req, res) => res.status(404).json({ success: false, message: "Route not found" }));
 app.use(errorMiddleware);
 
 const port = process.env.PORT || 5000;
+console.log("Connecting to database...");
 connectDB()
   .then(() => {
-    httpServer.listen(port, () => console.log(`Backend listening on http://localhost:${port}`));
+    console.log("Database connected successfully! Starting HTTP server...");
+    httpServer.listen(port, "0.0.0.0", () => {
+      console.log(`🚀 Server successfully listening on 0.0.0.0:${port}`);
+    });
 
     function gracefulShutdown() {
       console.log("Shutting down gracefully...");
@@ -148,6 +179,6 @@ connectDB()
     process.on("SIGINT", gracefulShutdown);
   })
   .catch((error) => {
-    console.error("Unable to start backend", error);
+    console.error("FATAL: Unable to start backend:", error);
     process.exit(1);
   });
