@@ -7,6 +7,7 @@ async function connectDB() {
     serverSelectionTimeoutMS: 10000,
     heartbeatFrequencyMS: 5000,
     socketTimeoutMS: 15000,
+    authSource: "admin",
   });
   console.log("✅ MongoDB connected successfully to database:", mongoose.connection.name);
 }

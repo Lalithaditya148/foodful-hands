@@ -81,6 +81,7 @@ app.use(
       mongoUrl,
       mongoOptions: {
         serverSelectionTimeoutMS: 10000,
+        authSource: "admin",
       },
     }),
     cookie: {
