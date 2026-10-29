@@ -115,11 +115,17 @@ io.on("connection", (socket) => {
 });
 
 app.get("/api/health", (_req, res) => res.json({ success: true, message: "API is healthy" }));
+app.get("/health", (_req, res) => res.json({ success: true, message: "API is healthy" }));
 
+// Support both /api/* and /* routes
 app.use("/api/auth", authLimiter, authRoutes);
+app.use("/auth", authLimiter, authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/users", userRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/contact", contactRoutes);
 app.use("/api/donations", donationRoutes);
+app.use("/donations", donationRoutes);
 
 // Serve compiled frontend in production if dist exists
 const path = require("path");
