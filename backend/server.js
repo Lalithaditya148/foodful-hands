@@ -26,12 +26,12 @@ const authLimiter = rateLimit({
   message: { success: false, message: "Too many attempts, please try again later" },
 });
 
-const allowedOrigins = (process.env.CLIENT_URL || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
 function isAllowedOrigin(origin) {
   if (!origin) return true;
+  // Allow all origins if CLIENT_URL is * or not set
+  const clientUrl = process.env.CLIENT_URL || "*";
+  if (clientUrl === "*") return true;
+  const allowedOrigins = clientUrl.split(",").map((o) => o.trim()).filter(Boolean);
   if (allowedOrigins.includes(origin)) return true;
   if (process.env.NODE_ENV !== "production") {
     try {
